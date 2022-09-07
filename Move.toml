@@ -6,7 +6,7 @@ version = "1.0.0"
 std = "0x1"
 aptos_std = "0x1"
 aptos_framework = "0x1"
-UniswapV2 = "0x883efc6f7c1cea4cd15c646ab715f30984c865a6f21e1f0bd498ff7062b84d28"
+UniswapV2 = "0xe43e88c9c01cd2515367a3c7a74cbfa5817c965910f9a9ab91c65f72a2b5a47f"
 
 [dependencies.AptosFramework]
 git = "https://github.com/aptos-labs/aptos-core.git"

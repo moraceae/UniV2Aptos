@@ -160,13 +160,13 @@ module UniswapV2::Pool {
 
     }
 
-    /// swap Token
+    /// swap Token     RETURN FAIL TODO
     public entry fun swap<CoinType1, CoinType2>(
         user: &signer,
         amountIn: u64,
         // minAmountOut: u64,
         zeroForOne: bool,
-    ) : u64 acquires PoolData {
+    ) acquires PoolData {
 
         let user_addr = signer::address_of(user);
 
@@ -174,10 +174,9 @@ module UniswapV2::Pool {
         let pool_store = borrow_global_mut<PoolData<CoinType1, CoinType2, PoolToken<CoinType1, CoinType2>>>(@UniswapV2);
 
         // swap
-        let amountOut;
         if (zeroForOne) {
             // getAmountOut
-            amountOut = Math::get_amount_out(amountIn, pool_store.reserves_data.r0, pool_store.reserves_data.r1);
+            let amountOut = Math::get_amount_out(amountIn, pool_store.reserves_data.r0, pool_store.reserves_data.r1);
             // withdraw user token0
             let tokenIn = coin::withdraw<CoinType1>(user, amountIn);
             coin::merge(&mut pool_store.reserves.r0, tokenIn);
@@ -188,7 +187,7 @@ module UniswapV2::Pool {
             pool_store.reserves_data.r1 = pool_store.reserves_data.r1 - amountOut;
         } else {
             // getAmountOut
-            amountOut = Math::get_amount_out(amountIn, pool_store.reserves_data.r1, pool_store.reserves_data.r0);
+            let amountOut = Math::get_amount_out(amountIn, pool_store.reserves_data.r1, pool_store.reserves_data.r0);
             // withdraw user token1
             let tokenIn = coin::withdraw<CoinType2>(user, amountIn);
             coin::merge(&mut pool_store.reserves.r1, tokenIn);
@@ -197,9 +196,8 @@ module UniswapV2::Pool {
             let tokenOut = coin::extract(&mut pool_store.reserves.r0, amountOut);
             coin::deposit<CoinType1>(user_addr, tokenOut);
             pool_store.reserves_data.r0 = pool_store.reserves_data.r0 - amountOut;
-        };
+        }
 
-        amountOut
 
     }
 
