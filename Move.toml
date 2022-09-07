@@ -1,0 +1,19 @@
+[package]
+name = "UniswapV2"
+version = "1.0.0"
+
+[addresses]
+std = "0x1"
+aptos_std = "0x1"
+aptos_framework = "0x1"
+UniswapV2 = "0x883efc6f7c1cea4cd15c646ab715f30984c865a6f21e1f0bd498ff7062b84d28"
+
+[dependencies.AptosFramework]
+git = "https://github.com/aptos-labs/aptos-core.git"
+rev = "8399cd1c7b9662d3a6a09c28363c5f66f0839c41" # aptos-cli-v0.3.1a
+subdir = "aptos-move/framework/aptos-framework"
+
+[dependencies.MoveStdlib]
+git = "https://github.com/aptos-labs/aptos-core.git"
+rev = "8399cd1c7b9662d3a6a09c28363c5f66f0839c41" # aptos-cli-v0.3.1a
+subdir = "aptos-move/framework/move-stdlib"
