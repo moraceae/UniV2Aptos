@@ -35,10 +35,15 @@ module UniswapV2::Pool {
         ts: u64,
     }
 
+    struct Config has store {
+        fee_rate: u64, //  x / 100
+    }
+
     /// Reserve Info
     struct PoolData<phantom CoinType1, phantom CoinType2> has key {
         reserves: CoinsStore<CoinType1, CoinType2>,
         reserves_data: ReserveData,
+        config_data: Config,
     }
 
     /// Mint & Burn lpToken
@@ -73,8 +78,8 @@ module UniswapV2::Pool {
             owner,
             symbol0,
             string::utf8(b"LP-Token"),
-            18,
-            true,
+            6,
+            false,
         );
         // abandon freeze
         coin::destroy_freeze_cap(freeze_cap);
@@ -83,8 +88,9 @@ module UniswapV2::Pool {
         // INIT PoolData
         let reserve = CoinsStore<CoinType1, CoinType2> {r0: coin::zero<CoinType1>(), r1: coin::zero<CoinType2>()};
         let reserve_data = ReserveData {r0: 0, r1: 0, ts: 0};
+        let config_data = Config { fee_rate: 10 };
         // store PoolData
-        move_to(owner, PoolData<CoinType1, CoinType2> { reserves: reserve, reserves_data: reserve_data });
+        move_to(owner, PoolData<CoinType1, CoinType2> { reserves: reserve, reserves_data: reserve_data, config_data: config_data });
 
     }
 
@@ -160,7 +166,7 @@ module UniswapV2::Pool {
 
     }
 
-    /// swap Token     RETURN FAIL TODO
+    /// swap Token
     public entry fun swap<CoinType1, CoinType2>(
         user: &signer,
         amountIn: u64,
@@ -173,25 +179,29 @@ module UniswapV2::Pool {
         // Transfer To Pool
         let pool_store = borrow_global_mut<PoolData<CoinType1, CoinType2>>(@UniswapV2);
 
+        // Fee Collect
+        let fee = amountIn * pool_store.config_data.fee_rate / 100;
+        let amount_in_without_fee = amountIn - fee;
+
         // swap
         if (zeroForOne) {
             // getAmountOut
-            let amountOut = Math::get_amount_out(amountIn, pool_store.reserves_data.r0, pool_store.reserves_data.r1);
+            let amountOut = Math::get_amount_out(amount_in_without_fee, pool_store.reserves_data.r0, pool_store.reserves_data.r1);
             // withdraw user token0
             let tokenIn = coin::withdraw<CoinType1>(user, amountIn);
             coin::merge(&mut pool_store.reserves.r0, tokenIn);
-            pool_store.reserves_data.r0 = pool_store.reserves_data.r0 + amountIn;
+            pool_store.reserves_data.r0 = pool_store.reserves_data.r0 + amount_in_without_fee;
             // Send user token1
             let tokenOut = coin::extract(&mut pool_store.reserves.r1, amountOut);
             coin::deposit<CoinType2>(user_addr, tokenOut);
             pool_store.reserves_data.r1 = pool_store.reserves_data.r1 - amountOut;
         } else {
             // getAmountOut
-            let amountOut = Math::get_amount_out(amountIn, pool_store.reserves_data.r1, pool_store.reserves_data.r0);
+            let amountOut = Math::get_amount_out(amount_in_without_fee, pool_store.reserves_data.r1, pool_store.reserves_data.r0);
             // withdraw user token1
             let tokenIn = coin::withdraw<CoinType2>(user, amountIn);
             coin::merge(&mut pool_store.reserves.r1, tokenIn);
-            pool_store.reserves_data.r1 = pool_store.reserves_data.r1 + amountIn;
+            pool_store.reserves_data.r1 = pool_store.reserves_data.r1 + amount_in_without_fee;
             // Send user token0
             let tokenOut = coin::extract(&mut pool_store.reserves.r0, amountOut);
             coin::deposit<CoinType1>(user_addr, tokenOut);

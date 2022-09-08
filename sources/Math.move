@@ -17,11 +17,7 @@ module UniswapV2::Math {
         let mint_amount;
         if (ts == 0) {
             // Should use sqrt(r0*r1);
-            if (r0 > r1) {
-                mint_amount = amount0;
-            } else {
-                mint_amount = amount1;
-            };
+            mint_amount = sqrt(amount0 * amount1);
             (amount0, amount1, mint_amount)
         } else {
             let mint0 = amount0 * ts / r0;
@@ -40,6 +36,38 @@ module UniswapV2::Math {
         let numerator = input_amount_with_fee * output_reserve;
         let denominator = (input_reserve * 1000) + input_amount_with_fee;
         numerator / denominator
+    }
+
+    public fun sqrt(y: u64): u64 {
+        if (y > 3) {
+            let z = y;
+            let x = y / 2 + 1;
+            while (x < z) {
+                z = x;
+                x = (y / x + x) / 2;
+            };
+            z
+        } else if (y != 0){
+            1
+        } else {
+            0
+        }
+    }
+
+    public fun min(x: u64, y: u64) :u64 {
+        if (x < y) {
+            x
+        } else {
+            y
+        }
+    }
+
+    public fun max(x: u64, y: u64) :u64 {
+        if (x < y) {
+            y
+        } else {
+            x
+        }
     }
 
 }
