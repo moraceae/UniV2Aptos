@@ -198,6 +198,94 @@ module UniswapV2::Pool {
             pool_store.reserves_data.r0 = pool_store.reserves_data.r0 - amountOut;
         }
 
+    }
+
+    //
+    // Tests
+    //
+
+    #[test_only]
+    use std::debug;
+    use aptos_framework::aptos_account;
+    use UniswapV2::MockTokens;
+
+    #[test_only]
+    public fun get_balance<CoinType>(
+        user: &signer
+    ) : u64 {
+        let user_addr = std::signer::address_of(user);
+        coin::balance<CoinType>(user_addr)
+    }
+
+    #[test_only]
+    public fun get_reserves<CoinType1, CoinType2>() : (u64, u64, u64) acquires PoolData {
+        // Read Pool_data
+        let pool_data = borrow_global<PoolData<CoinType1, CoinType2, PoolToken<CoinType1, CoinType2>>>(@UniswapV2);
+        (pool_data.reserves_data.r0, pool_data.reserves_data.r1, pool_data.reserves_data.ts)
+
+    }
+
+    #[test(owner = @0xe43e88c9c01cd2515367a3c7a74cbfa5817c965910f9a9ab91c65f72a2b5a47f, alice = @66, bob = @67)]
+    public fun test_pool(
+        owner: signer,
+        alice: signer,
+        bob: signer,
+    ) acquires PoolData, Caps {
+
+        // Register USDT & USDC
+        MockTokens::register_coins(&owner);
+        debug::print(&b"USDC & USDT");
+
+        // Register Alice & Mint
+        let alice_addr = signer::address_of(&alice);
+        aptos_account::create_account(alice_addr);
+        MockTokens::register<MockTokens::USDT>(&alice);
+        MockTokens::mint_coin<MockTokens::USDT>(&owner, alice_addr, 100000);
+        MockTokens::register<MockTokens::USDC>(&alice);
+        MockTokens::mint_coin<MockTokens::USDC>(&owner, alice_addr, 100000);
+        // Print
+        debug::print<address>(&alice_addr);
+        debug::print(&get_balance<MockTokens::USDT>(&alice));
+        debug::print(&get_balance<MockTokens::USDC>(&alice));
+
+        // Register Bob & Mint
+        let bob_addr = signer::address_of(&bob);
+        aptos_account::create_account(bob_addr);
+        MockTokens::register<MockTokens::USDT>(&bob);
+        MockTokens::mint_coin<MockTokens::USDT>(&owner, bob_addr, 100000);
+        MockTokens::register<MockTokens::USDC>(&bob);
+        MockTokens::mint_coin<MockTokens::USDC>(&owner, bob_addr, 100000);
+        debug::print<address>(&bob_addr);
+        debug::print(&get_balance<MockTokens::USDT>(&bob));
+        debug::print(&get_balance<MockTokens::USDC>(&bob));
+
+        // Create pool
+        create_pool<MockTokens::USDT, MockTokens::USDC>(&owner);
+        let (r0, r1, ts) = get_reserves<MockTokens::USDT, MockTokens::USDC>();
+        debug::print(&r0);
+        debug::print(&r1);
+        debug::print(&ts);
+
+        // Add liq
+        add_liquidity<MockTokens::USDT, MockTokens::USDC>(&alice, 50000, 50000);
+        let (r0, r1, ts) = get_reserves<MockTokens::USDT, MockTokens::USDC>();
+        debug::print(&r0);
+        debug::print(&r1);
+        debug::print(&ts);
+
+        // Swap
+        debug::print<address>(&alice_addr);
+        debug::print(&get_balance<MockTokens::USDT>(&alice));
+        debug::print(&get_balance<MockTokens::USDC>(&alice));
+        swap<MockTokens::USDT, MockTokens::USDC>(&alice, 1000, true);
+        debug::print<address>(&alice_addr);
+        debug::print(&get_balance<MockTokens::USDT>(&alice));
+        debug::print(&get_balance<MockTokens::USDC>(&alice));
+
+        let (r0, r1, ts) = get_reserves<MockTokens::USDT, MockTokens::USDC>();
+        debug::print(&r0);
+        debug::print(&r1);
+        debug::print(&ts);
 
     }
 
