@@ -29,16 +29,16 @@ module UniswapV2::Pool {
     }
 
     /// r0, r1
-    struct ReserveData<phantom CoinType1, phantom CoinType2> has copy, store {
+    struct ReserveData has store {
         r0: u64,
         r1: u64,
         ts: u64,
     }
 
     /// Reserve Info
-    struct PoolData<phantom CoinType1, phantom CoinType2, phantom PoolType> has key {
+    struct PoolData<phantom CoinType1, phantom CoinType2> has key {
         reserves: CoinsStore<CoinType1, CoinType2>,
-        reserves_data: ReserveData<CoinType1, CoinType2>,
+        reserves_data: ReserveData,
     }
 
     /// Mint & Burn lpToken
@@ -54,13 +54,12 @@ module UniswapV2::Pool {
     /// Create Pool to address of Owner
     public entry fun create_pool<CoinType1, CoinType2>(owner: &signer) {
 
-        // let owner_addr = signer::address_of(owner);
-
         // Check Coin Valid
         assert!(coin::is_coin_initialized<CoinType1>(), error::invalid_argument(COIN_NOT_REGITER));
         assert!(coin::is_coin_initialized<CoinType2>(), error::invalid_argument(COIN_NOT_REGITER));
 
         // Token0 & Token1 Order TODO
+
         // Check Pool Valid
         assert!(!coin::is_coin_initialized<PoolToken<CoinType1, CoinType2>>(), error::invalid_argument(POOL_REGITERED));
 
@@ -83,9 +82,9 @@ module UniswapV2::Pool {
         move_to(owner, Caps<PoolToken<CoinType1, CoinType2>> { mint: mint_cap, burn: burn_cap });
         // INIT PoolData
         let reserve = CoinsStore<CoinType1, CoinType2> {r0: coin::zero<CoinType1>(), r1: coin::zero<CoinType2>()};
-        let reserve_data = ReserveData<CoinType1, CoinType2> {r0: 0, r1: 0, ts: 0};
+        let reserve_data = ReserveData {r0: 0, r1: 0, ts: 0};
         // store PoolData
-        move_to(owner, PoolData<CoinType1, CoinType2, PoolToken<CoinType1, CoinType2>> { reserves: reserve, reserves_data: reserve_data });
+        move_to(owner, PoolData<CoinType1, CoinType2> { reserves: reserve, reserves_data: reserve_data });
 
     }
 
@@ -104,13 +103,14 @@ module UniswapV2::Pool {
         };
 
         // Read Pool_data
-        let pool_data = borrow_global<PoolData<CoinType1, CoinType2, PoolToken<CoinType1, CoinType2>>>(@UniswapV2);
+        // let pool_data = borrow_global<PoolData<CoinType1, CoinType2>>(@UniswapV2);
+        let pool_store = borrow_global_mut<PoolData<CoinType1, CoinType2>>(@UniswapV2);
 
         // Mint Amount
-        let (amount0, amount1, mintAmount) = Math::amount_to_share(pool_data.reserves_data.r0, pool_data.reserves_data.r1, amount0, amount1, pool_data.reserves_data.ts);
+        let (amount0, amount1, mintAmount) = Math::amount_to_share(pool_store.reserves_data.r0, pool_store.reserves_data.r1, amount0, amount1, pool_store.reserves_data.ts);
 
         // Transfer To Pool
-        let pool_store = borrow_global_mut<PoolData<CoinType1, CoinType2, PoolToken<CoinType1, CoinType2>>>(@UniswapV2);
+
         let res0 = coin::withdraw<CoinType1>(user, amount0);
         coin::merge(&mut pool_store.reserves.r0, res0);
         let res1 = coin::withdraw<CoinType2>(user, amount1);
@@ -137,7 +137,7 @@ module UniswapV2::Pool {
         let user_addr = signer::address_of(user);
 
         // Read Pool_data
-        let pool_data = borrow_global_mut<PoolData<CoinType1, CoinType2, PoolToken<CoinType1, CoinType2>>>(@UniswapV2);
+        let pool_data = borrow_global_mut<PoolData<CoinType1, CoinType2>>(@UniswapV2);
 
         // Burn
         let cap = borrow_global<Caps<PoolToken<CoinType1, CoinType2>>>(@UniswapV2);
@@ -171,7 +171,7 @@ module UniswapV2::Pool {
         let user_addr = signer::address_of(user);
 
         // Transfer To Pool
-        let pool_store = borrow_global_mut<PoolData<CoinType1, CoinType2, PoolToken<CoinType1, CoinType2>>>(@UniswapV2);
+        let pool_store = borrow_global_mut<PoolData<CoinType1, CoinType2>>(@UniswapV2);
 
         // swap
         if (zeroForOne) {
@@ -220,7 +220,7 @@ module UniswapV2::Pool {
     #[test_only]
     public fun get_reserves<CoinType1, CoinType2>() : (u64, u64, u64) acquires PoolData {
         // Read Pool_data
-        let pool_data = borrow_global<PoolData<CoinType1, CoinType2, PoolToken<CoinType1, CoinType2>>>(@UniswapV2);
+        let pool_data = borrow_global<PoolData<CoinType1, CoinType2>>(@UniswapV2);
         (pool_data.reserves_data.r0, pool_data.reserves_data.r1, pool_data.reserves_data.ts)
 
     }
