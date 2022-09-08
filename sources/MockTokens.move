@@ -34,7 +34,7 @@ module UniswapV2::MockTokens {
     public entry fun register_coins(token_admin: &signer) {
 
         // Initial USDC
-        let (eth_b, eth_f, eth_m) = coin::initialize<USDC>(
+        let (usdc_b, usdc_f, usdc_m) = coin::initialize<USDC>(
             token_admin,
             utf8(b"USDC"),
             utf8(b"USDC"),
@@ -50,10 +50,10 @@ module UniswapV2::MockTokens {
             true
         );
         // Destroy Freeze cap
-        coin::destroy_freeze_cap(eth_f);
+        coin::destroy_freeze_cap(usdc_f);
         coin::destroy_freeze_cap(usdt_f);
         // Move to
-        move_to(token_admin, Caps<USDC> { mint: eth_m, burn: eth_b });
+        move_to(token_admin, Caps<USDC> { mint: usdc_m, burn: usdc_b });
         move_to(token_admin, Caps<USDT> { mint: usdt_m, burn: usdt_b });
 
     }
